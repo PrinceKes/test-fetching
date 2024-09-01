@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Telegram Mini App</title>
+    <style>
+        #console-output {
+            color: red;
+            margin-top: 20px;
+            font-family: Arial, sans-serif;
+        }
+    </style>
+</head>
+<body>
+
+<h2>Wallet Balance:</h2>
+<p id="wallet-balance">Fetching balance...</p>
+
+<!-- Console output section -->
+<div id="console-output"></div>
+
+<!-- JavaScript code -->
+<script>
+    // Function to display messages on the HTML page
+    function displayConsoleMessage(message, isError = false) {
+        const consoleOutput = document.getElementById('console-output');
+        const messageElement = document.createElement('p');
+        messageElement.textContent = message;
+
+        if (isError) {
+            messageElement.style.color = 'red';
+        } else {
+            messageElement.style.color = 'green';
+        }
+
+        consoleOutput.appendChild(messageElement);
+        console.log(message); // Extra log for debugging in case HTML output fails
+    }
+
+    // Initialize Telegram WebApp
+    const tg = window.Telegram.WebApp;
+
+    // Attempt to fetch user_id from the URL
+    const urlParams = new URLSearchParams(window.location.search);
+    let userId = urlParams.get('user_id');
+
+    // Fallback: Fetch user_id directly from Telegram if not found in URL
+    if (!userId && tg.initDataUnsafe && tg.initDataUnsafe.user) {
+        userId = tg.initDataUnsafe.user.id;
+    }
+
+    displayConsoleMessage('JavaScript Loaded'); // Verify if the script runs
+
+    if (userId) {
+        displayConsoleMessage('Fetching balance for user ID: ' + userId);
+
+        // Use your hosted URL for fetching balance data
+        fetch('https://telegramserverbot.onrender.com/get_balance', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ user_id: userId }),
+        })
+        .then(response => {
+            displayConsoleMessage('Response status: ' + response.status);
+
+            // Check if response is not OK
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+
+            return response.json();
+        })
+        .then(data => {
+            displayConsoleMessage('Received balance data: ' + JSON.stringify(data));
+
+            if (data.status === 'success') {
+                const formattedBalance = `₦${data.balance.toLocaleString('en-NG', { minimumFractionDigits: 2 })}`;
+                document.getElementById('wallet-balance').innerText = formattedBalance;
+                displayConsoleMessage('Balance displayed successfully.');
+            } else {
+                displayConsoleMessage('Failed to fetch balance: ' + data.message, true);
+            }
+        })
+        .catch(error => {
+            displayConsoleMessage('Error fetching balance: ' + error, true);
+        });
+    } else {
+        displayConsoleMessage('User ID not found in URL or Telegram data.', true);
+    }
+</script>
+
+</body>
+</html>
